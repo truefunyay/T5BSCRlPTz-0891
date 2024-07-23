@@ -1,0 +1,136 @@
+PRESS 2 IN SATIAMA ULT TO HOLLOW PURPLE NEAREST PLAYER (my verison of it)
+
+------ COPY AND PASTE BELOW HERE
+
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = game.Workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local originalPosition = nil
+local originalCameraType = nil
+local facingCoroutine = nil
+local facingCoroutineRunning = false
+local hasTeleported = false
+
+local messages = {"Nine Ropes", "Polarized Light", "Crow and Declaration", "Between Front and Back"}
+local messageIndex = 1
+
+function getNearestPlayer()
+    local nearestPlayer = nil
+    local shortestDistance = math.huge
+    local character = LocalPlayer.Character
+    if character then
+        local characterPosition = character.HumanoidRootPart.Position
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local distance = (player.Character.HumanoidRootPart.Position - characterPosition).magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPlayer = player
+                end
+            end
+        end
+    end
+    return nearestPlayer
+end
+
+function faceNearestPlayer()
+    local character = LocalPlayer.Character
+    if character then
+        local nearestPlayer = getNearestPlayer()
+        if nearestPlayer and nearestPlayer.Character and nearestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local lookAtPosition = nearestPlayer.Character.HumanoidRootPart.Position
+            character.HumanoidRootPart.CFrame = CFrame.new(character.HumanoidRootPart.Position, Vector3.new(lookAtPosition.X, character.HumanoidRootPart.Position.Y, lookAtPosition.Z))
+        end
+    end
+end
+
+function sendMessage(message)
+    local args = {
+        [1] = message,
+        [2] = "All"
+    }
+    ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("SayMessageRequest"):FireServer(unpack(args))
+end
+
+function teleportAndReturn()
+    local character = LocalPlayer.Character
+    if character then
+        originalPosition = character.HumanoidRootPart.Position
+        originalCameraType = Camera.CameraType
+
+        -- Get the nearest player
+        local nearestPlayer = getNearestPlayer()
+        if not nearestPlayer then
+            return
+        end
+
+        local teleportPosition = nearestPlayer.Character.HumanoidRootPart.Position + (nearestPlayer.Character.HumanoidRootPart.CFrame.LookVector * 10)
+
+        -- Start the coroutine to face the nearest player
+        if not facingCoroutineRunning then
+            startFacingCoroutine()
+        end
+
+        -- Force the camera to stay at the original position
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = CFrame.new(originalPosition + Vector3.new(0, 10, 0), originalPosition)
+
+        -- Teleport to (0, 1000000, 0)
+        character.HumanoidRootPart.CFrame = CFrame.new(0, 1000000, 0)
+
+        -- Send messages during the wait time
+        for i = 1, #messages do
+            wait(1.05) -- Total wait time of 4.2 seconds split into 4 messages
+            sendMessage(messages[messageIndex])
+            messageIndex = (messageIndex % #messages) + 1
+        end
+
+        -- Wait before teleporting close to the nearest player
+        wait(1.7)
+
+        -- Teleport to 10 studs away from the nearest player and face them
+        character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
+        faceNearestPlayer()
+
+        -- Return to the original position after 1.9 seconds
+        wait(1.9)
+        character.HumanoidRootPart.CFrame = CFrame.new(originalPosition)
+        Camera.CameraType = originalCameraType
+
+        -- Send final message
+        sendMessage("HOLLOW PURPLE")
+
+        -- Stop facing after 5 seconds
+        wait(3.3)
+        stopFacingCoroutine()
+
+        hasTeleported = true
+    end
+end
+
+function startFacingCoroutine()
+    facingCoroutine = coroutine.create(function()
+        facingCoroutineRunning = true
+        while facingCoroutineRunning do
+            faceNearestPlayer()
+            wait(0.1)
+        end
+        facingCoroutineRunning = false
+    end)
+    coroutine.resume(facingCoroutine)
+end
+
+function stopFacingCoroutine()
+    facingCoroutineRunning = false
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or hasTeleported then return end
+    if input.KeyCode == Enum.KeyCode.Two or input.KeyCode == Enum.KeyCode.Three then
+        teleportAndReturn()
+    end
+end)
