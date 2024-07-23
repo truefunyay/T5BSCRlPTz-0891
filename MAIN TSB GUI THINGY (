@@ -1,0 +1,228 @@
+
+MADE BY LOCAL
+
+-- COPY FROM BELOW HERE --
+local player = game.Players.LocalPlayer
+local userInputService = game:GetService("UserInputService")
+local rng = Random.new()
+
+-- Variables to track the states
+local voidOn = true
+local platformMode = false
+local alternateMode = false
+local secondAlternateMode = false
+local thirdAlternateMode = false
+local noStunEnabled = false
+
+local function createPlatform(position, size)
+    local part = Instance.new("Part")
+    part.Size = size
+    part.Position = position + Vector3.new(0, -5, 0)
+    part.Anchored = true
+    part.CanCollide = true
+    part.Parent = game.Workspace
+    return part
+end
+
+local function teleportTo(position, waitTime)
+    wait(waitTime)
+    player.Character:SetPrimaryPartCFrame(CFrame.new(position))
+end
+
+local function teleportToPlayers(duration)
+    local startTime = tick()
+    local endTime = startTime + duration
+
+    while tick() < endTime do
+        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player then
+                teleportTo(otherPlayer.Character.HumanoidRootPart.Position, 0)
+                wait(0.05)
+            end
+        end
+    end
+end
+
+local function thirdAlternateForm()
+    if thirdAlternateMode then
+        wait(0.5)
+        for _ = 1, 3000 do
+            local randomPosition = Vector3.new(
+                rng:NextNumber(544, 235),
+                rng:NextNumber(441, 601),
+                rng:NextNumber(288, 266)
+            )
+            teleportTo(randomPosition, 0.001)
+        end
+        teleportTo(Vector3.new(0, 140, 0), 3)
+    end
+end
+
+-- Create the GUI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "ControlGui"
+screenGui.ResetOnSpawn = false -- Prevent the GUI from disappearing on player death
+
+local function createButton(name, position, text, callback, parent)
+    local button = Instance.new("TextButton", parent)
+    button.Name = name
+    button.Position = position
+    button.Size = UDim2.new(0, 100, 0, 50)
+    button.Text = text
+    button.MouseButton1Click:Connect(callback)
+    return button
+end
+
+-- Create page switch buttons
+local currentPage = 1
+local pages = {}
+
+local function createPage(name)
+    local frame = Instance.new("Frame", screenGui)
+    frame.Name = name
+    frame.Position = UDim2.new(0, 0, 1, -200)
+    frame.Size = UDim2.new(0, 400, 0, 200)
+    frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    table.insert(pages, frame)
+    frame.Visible = false
+    return frame
+end
+
+local page1 = createPage("Page1")
+local page2 = createPage("Page2")
+local page3 = createPage("Page3")
+local page4 = createPage("Page4")
+
+local function showPage(pageNumber)
+    for i, page in ipairs(pages) do
+        page.Visible = (i == pageNumber)
+    end
+    currentPage = pageNumber
+end
+
+showPage(1)
+
+createButton("PrevPage", UDim2.new(0, 0, 1, -50), "<", function() showPage(math.max(1, currentPage - 1)) end, screenGui)
+createButton("NextPage", UDim2.new(0.1, 0, 1, -50), ">", function() showPage(math.min(#pages, currentPage + 1)) end, screenGui)
+
+-- Buttons for page 1
+createButton("EnableVoid", UDim2.new(0, 0, 0, 0), "Enable", function() voidOn = true end, page1)
+createButton("DisableVoid", UDim2.new(0, 100, 0, 0), "Disable", function() voidOn = false end, page1)
+createButton("TogglePlatformMode", UDim2.new(0, 200, 0, 0), "Platform Mode", function() platformMode = not platformMode end, page1)
+createButton("ToggleAlternateMode", UDim2.new(0, 300, 0, 0), "Alt Mode", function() alternateMode = not alternateMode end, page1)
+createButton("ToggleSecondAltMode", UDim2.new(0, 0, 0, 50), "2nd Alt Mode", function() secondAlternateMode = not secondAlternateMode end, page1)
+createButton("ToggleThirdAltMode", UDim2.new(0, 100, 0, 50), "3rd Alt Mode", function() thirdAlternateMode = not thirdAlternateMode end, page1)
+
+-- Buttons for page 2
+createButton("AtomicSlash", UDim2.new(0, 0, 0, 0), "Atomic Slash", function() teleportTo(Vector3.new(1058, 133, 23006), 0) end, page2)
+createButton("DeathCounter", UDim2.new(0, 100, 0, 0), "Death Counter", function() teleportTo(Vector3.new(-66, 29, 20383), 0) end, page2)
+createButton("Baseplate", UDim2.new(0, 200, 0, 0), "Baseplate", function() teleportTo(Vector3.new(1072, 405, 22984), 0) end, page2)
+createButton("LowerBaseplate", UDim2.new(0, 300, 0, 0), "Lower Baseplate", function() teleportTo(Vector3.new(1072, 20, 22984), 0) end, page2)
+
+-- Buttons for page 3
+local noStunButton = createButton("NoStun", UDim2.new(0, 0, 0, 0), "NO STUN (OFF)", function()
+    noStunEnabled = not noStunEnabled
+    noStunButton.Text = noStunEnabled and "NO STUN (ON)" or "NO STUN (OFF)"
+end, page3)
+
+-- Close button for page 4
+local closeButton = createButton("CloseButton", UDim2.new(0, 0, 0, 0), "Close", function() end, page4)
+closeButton.BackgroundColor3 = Color3.new(1, 0, 0)
+local isCloseConfirmed = false
+
+closeButton.MouseButton1Click:Connect(function()
+    if isCloseConfirmed then
+        screenGui:Destroy()
+    else
+        closeButton.Text = "you sure"
+        isCloseConfirmed = true
+        wait(2)
+        if isCloseConfirmed then
+            closeButton.Text = "Close"
+            isCloseConfirmed = false
+        end
+    end
+end)
+
+-- Minimize/Unminimize Functionality
+local isMinimized = false
+
+local topBar = Instance.new("Frame", screenGui)
+topBar.Name = "TopBar"
+topBar.Position = UDim2.new(0, 0, 0, 0)
+topBar.Size = UDim2.new(1, 0, 0, 30)
+topBar.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+
+local minimizeButton = Instance.new("TextButton", topBar)
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Position = UDim2.new(1, -100, 0, 0)
+minimizeButton.Size = UDim2.new(0, 100, 0, 30)
+minimizeButton.Text = "Minimize"
+
+minimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    for _, page in ipairs(pages) do
+        page.Visible = not isMinimized
+    end
+    minimizeButton.Text = isMinimized and "Unminimize" or "Minimize"
+end)
+
+-- Handle teleportation when 'W' key is pressed
+local function onKeyPress(input)
+    if input.KeyCode == Enum.KeyCode.W and noStunEnabled then
+        while userInputService:IsKeyDown(Enum.KeyCode.W) do
+            local currentPosition = player.Character.HumanoidRootPart.Position
+            local newPosition = currentPosition + player.Character.HumanoidRootPart.CFrame.lookVector * 2.5
+            player.Character:SetPrimaryPartCFrame(CFrame.new(newPosition))
+            wait(0.1)
+        end
+    end
+end
+
+userInputService.InputBegan:Connect(onKeyPress)
+
+-- Handle teleportation when in modes
+local function handleTeleportation(keyCode)
+    if voidOn then
+        if thirdAlternateMode then
+            if keyCode == Enum.KeyCode.One then
+                thirdAlternateForm()
+            end
+        elseif secondAlternateMode then
+            if keyCode == Enum.KeyCode.One then
+                local oldPosition = player.Character.HumanoidRootPart.Position
+                wait(0.5)
+                teleportTo(Vector3.new(0, 0, 0), 0.45)
+                wait(0.5)
+                teleportTo(oldPosition, 0)
+                createPlatform(Vector3.new(0, 0, 0), Vector3.new(500, 50, 500))
+                wait(0.1)
+                teleportTo(Vector3.new(313, 617, 416), 0)
+            end
+        elseif alternateMode then
+            if keyCode == Enum.KeyCode.One then
+                local oldPosition = player.Character.HumanoidRootPart.Position
+                teleportTo(Vector3.new(0, 140, 0), 0)
+                wait(1)
+                teleportTo(oldPosition, 0)
+            elseif keyCode == Enum.KeyCode.Two then
+                local oldPosition = player.Character.HumanoidRootPart.Position
+                teleportTo(Vector3.new(544, 441, 288), 0)
+                wait(3)
+                teleportTo(Vector3.new(0, 140, 0), 0)
+                wait(1)
+                teleportTo(oldPosition, 0)
+            end
+        elseif platformMode then
+            if keyCode == Enum.KeyCode.One then
+                createPlatform(player.Character.HumanoidRootPart.Position, Vector3.new(50, 1, 50))
+            end
+        end
+    end
+end
+
+userInputService.InputBegan:Connect(function(input, processed)
+    if not processed then
+        handleTeleportation(input.KeyCode)
+    end
+end)
