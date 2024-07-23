@@ -1,7 +1,3 @@
-PRESS 2 IN SATIAMA ULT TO HOLLOW PURPLE NEAREST PLAYER (my verison of it)
-
------- COPY AND PASTE BELOW HERE
-
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
